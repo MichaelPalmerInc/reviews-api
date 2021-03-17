@@ -40,11 +40,12 @@ const parseBoolean = (string) => {
   let productsInDB = {};
   for await (const row of parser) {
     const nextReview = {
-      review_id: row.id,
+      review_id: parseInt(row.id),
       rating: parseInt(row.rating),
       summary: row.summary,
       recommend: parseBoolean(row.recommend),
-      response: row.response === "null" ? null : row.response,
+      response:
+        row.response === "null" || row.response === "" ? null : row.response,
       body: row.body,
       date: new Date(row.date),
       reviewer_name: row.reviewer_name,
@@ -52,7 +53,7 @@ const parseBoolean = (string) => {
       helpfulness: parseInt(row.helpfulness),
     };
     products[row.product_id] = products[row.product_id] || {
-      product_id: row.product_id,
+      product_id: parseInt(row.product_id),
       reviews: [],
     };
     products[row.product_id].reviews.push(nextReview);
@@ -63,7 +64,7 @@ const parseBoolean = (string) => {
         if (productsInDB[key]) {
           writes.push({
             updateOne: {
-              filter: { product_id: key },
+              filter: { product_id: parseInt(key) },
               update: { $push: { reviews: { $each: products[key].reviews } } },
               upsert: true,
             },
@@ -87,7 +88,7 @@ const parseBoolean = (string) => {
     if (productsInDB[key]) {
       writes.push({
         updateOne: {
-          filter: { product_id: key },
+          filter: { product_id: parseInt(key) },
           update: { $push: { reviews: { $each: products[key].reviews } } },
           upsert: true,
         },
