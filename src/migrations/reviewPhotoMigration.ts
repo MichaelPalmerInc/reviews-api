@@ -1,7 +1,8 @@
-import { MongoClient } from 'mongodb';
+import { Collection, MongoClient } from 'mongodb';
 import csv from 'csv-parser';
 import fs from 'fs';
-import config from '../config';
+import config from '../../config';
+import { Photo, ProductDocument } from '../types';
 
 const batchSize = config.migrations.batchSize;
 
@@ -15,14 +16,14 @@ const reviewPhotoMigration = async () => {
   console.log(`Connected to mongo at ${config.database.mongoUri}`);
 
   const database = client.db('SDCReviews');
-  const SDCReviews = database.collection('SDCReviews');
+  const SDCReviews: Collection<ProductDocument> = database.collection('SDCReviews');
 
   console.log('Inserting photos into reviews');
   const start = Date.now();
   const parser = fs.createReadStream(config.migrations.reviewsPhotos).pipe(csv());
   let count = 0;
   let totalCount = 0;
-  let reviews = {};
+  let reviews: { [key: string]: Photo[] } = {};
   for await (const row of parser) {
     const reviewId = parseInt(row.review_id);
     const id = parseInt(row.id);

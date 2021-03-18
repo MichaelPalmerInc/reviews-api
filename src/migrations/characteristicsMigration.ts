@@ -1,7 +1,8 @@
-import { MongoClient } from 'mongodb';
+import { Collection, MongoClient } from 'mongodb';
 import csv from 'csv-parser';
 import fs from 'fs';
-import config from '../config';
+import config from '../../config';
+import { Characteristic, ProductDocument } from '../types';
 
 const batchSize = config.migrations.batchSize;
 
@@ -10,35 +11,31 @@ const client = new MongoClient(config.database.mongoUri, {
   useUnifiedTopology: true,
 });
 
-const reviewCharacteristicsMigration = async () => {
+const characteristicsMigration = async () => {
   await client.connect();
   console.log(`Connected to mongo at ${config.database.mongoUri}`);
 
   const database = client.db('SDCReviews');
-  const SDCReviews = database.collection('SDCReviews');
+  const SDCReviews: Collection<ProductDocument> = database.collection('SDCReviews');
 
-  console.log('Inserting characteristics into reviews');
+  console.log('Inserting characteristics into product documents');
   const start = Date.now();
-  const parser = fs.createReadStream(config.migrations.reviewsCharacteristics).pipe(csv());
+  const parser = fs.createReadStream(config.migrations.characteristics).pipe(csv());
   let count = 0;
   let totalCount = 0;
-  let reviews = {};
+  let products: { [key: string]: Characteristic[] } = {};
+
   for await (const row of parser) {
-    const reviewId = parseInt(row.review_id);
-    const characteristicId = parseInt(row.characteristic_id);
-    const value = parseInt(row.value);
-    reviews[reviewId] = reviews[reviewId] || {};
-    reviews[reviewId][characteristicId] = value;
+    products[row.product_id] = products[row.product_id] || [];
+    products[row.product_id].push({ id: parseInt(row.id), name: row.name });
     count++;
     if (count >= batchSize) {
       const writes = [];
-      for (const reviewId in reviews) {
+      for (const key in products) {
         writes.push({
           updateOne: {
-            filter: { 'reviews.review_id': parseInt(reviewId) },
-            update: {
-              $set: { 'reviews.$.characteristics': reviews[reviewId] },
-            },
+            filter: { product_id: parseInt(key) },
+            update: { $push: { characteristics: { $each: products[key] } } },
           },
         });
       }
@@ -46,19 +43,16 @@ const reviewCharacteristicsMigration = async () => {
       totalCount += count;
       console.log(totalCount);
       count = 0;
-      reviews = {};
+      products = {};
     }
   }
+
   const writes = [];
-  for (const reviewId in reviews) {
+  for (const key in products) {
     writes.push({
       updateOne: {
-        filter: { 'reviews.review_id': parseInt(reviewId) },
-        update: {
-          $set: {
-            'reviews.$.characteristics': reviews[reviewId],
-          },
-        },
+        filter: { product_id: parseInt(key) },
+        update: { $push: { characteristics: { $each: products[key] } } },
       },
     });
   }
@@ -72,8 +66,8 @@ const reviewCharacteristicsMigration = async () => {
 
 if (require.main === module) {
   (async () => {
-    reviewCharacteristicsMigration();
+    await characteristicsMigration();
   })();
 }
 
-export default reviewCharacteristicsMigration;
+export default characteristicsMigration;

@@ -1,7 +1,8 @@
-import { MongoClient } from 'mongodb';
+import { BulkWriteOperation, Collection, MongoClient } from 'mongodb';
 import csv from 'csv-parser';
 import fs from 'fs';
-import config from '../config';
+import config from '../../config';
+import { ProductDocument, Review } from '../types';
 
 const batchSize = process.env.BATCH_SIZE || 100000;
 
@@ -20,7 +21,7 @@ const productsMigration = async () => {
   console.log('Connected to mongo at: ', config.database.mongoUri);
 
   const database = client.db('SDCReviews');
-  const SDCReviews = database.collection('SDCReviews');
+  const SDCReviews: Collection<ProductDocument> = database.collection('SDCReviews');
   SDCReviews.drop();
   SDCReviews.createIndex({ product_id: 1 });
   SDCReviews.createIndex({ 'reviews.review_id': 1 });
@@ -31,7 +32,7 @@ const productsMigration = async () => {
   const parser = fs.createReadStream(config.migrations.reviews).pipe(csv());
   let count = 0;
   let totalCount = 0;
-  let products: ProductDocumentObject = {};
+  let products: { [key: string]: ProductDocument } = {};
   let productsInDB: { [key: string]: boolean } = {};
   for await (const row of parser) {
     const nextReview: Review = {
@@ -53,7 +54,7 @@ const productsMigration = async () => {
     products[row.product_id].reviews.push(nextReview);
     count++;
     if (count >= batchSize) {
-      const writes = [];
+      const writes: BulkWriteOperation<ProductDocument>[] = [];
       for (let key in products) {
         if (productsInDB[key]) {
           writes.push({
@@ -76,7 +77,7 @@ const productsMigration = async () => {
       products = {};
     }
   }
-  const writes = [];
+  const writes: BulkWriteOperation<ProductDocument>[] = [];
   for (let key in products) {
     if (productsInDB[key]) {
       writes.push({
@@ -107,44 +108,3 @@ if (require.main === module) {
 }
 
 export default productsMigration;
-
-type ReviewCsv = {
-  id: string;
-  product_id: string;
-  rating: string;
-  date: string;
-  summary: string;
-  body: string;
-  recommend: string;
-  reported: string;
-  reviewer_name: string;
-  reviewer_email: string;
-  response: string;
-  helpfulness: string;
-};
-
-type Review = {
-  review_id: number;
-  rating: number;
-  summary: string;
-  recommend: boolean;
-  response: string | null;
-  body: string;
-  date: Date;
-  reviewer_name: string;
-  reviewer_email: string;
-  helpfulness: number;
-  photos?: {
-    id: number;
-    url: string;
-  }[];
-};
-
-type ProductDocument = {
-  product_id: number;
-  reviews: Review[];
-};
-
-type ProductDocumentObject = {
-  [key: string]: ProductDocument;
-};

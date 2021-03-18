@@ -15,4 +15,5 @@ export default {
     reviewsCharacteristics: path.join(process.cwd(), dataDir, 'characteristic_reviews.csv'),
     batchSize: process.env.BATCH_SIZE || 1000,
   },
+  port: process.env.PORT || 3000,
 };
