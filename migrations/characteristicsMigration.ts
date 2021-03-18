@@ -1,37 +1,36 @@
-const { MongoClient } = require("mongodb");
-const csv = require("csv-parser");
-const fs = require("fs");
+import { MongoClient } from 'mongodb';
+import csv from 'csv-parser';
+import fs from 'fs';
+import config from '../config';
 
-const config = require("../../config");
-const batchSize = process.env.BATCH_SIZE || 10000;
+const batchSize = config.migrations.batchSize;
 
 const client = new MongoClient(config.database.mongoUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-(async () => {
+const characteristicsMigration = async () => {
   await client.connect();
-  console.log("Connected");
+  console.log(`Connected to mongo at ${config.database.mongoUri}`);
 
-  const database = client.db("SDCReviews");
-  const SDCReviews = database.collection("SDCReviews");
+  const database = client.db('SDCReviews');
+  const SDCReviews = database.collection('SDCReviews');
 
-  console.log("Inserting characteristics into products");
+  console.log('Inserting characteristics into product documents');
   const start = Date.now();
-  let parser = fs
-    .createReadStream(config.migrations.characteristics)
-    .pipe(csv());
+  const parser = fs.createReadStream(config.migrations.characteristics).pipe(csv());
   let count = 0;
   let totalCount = 0;
   let products = {};
+
   for await (const row of parser) {
     products[row.product_id] = products[row.product_id] || [];
     products[row.product_id].push({ id: parseInt(row.id), name: row.name });
     count++;
     if (count >= batchSize) {
       const writes = [];
-      for (let key in products) {
+      for (const key in products) {
         writes.push({
           updateOne: {
             filter: { product_id: parseInt(key) },
@@ -39,15 +38,16 @@ const client = new MongoClient(config.database.mongoUri, {
           },
         });
       }
-      const result = await SDCReviews.bulkWrite(writes, { ordered: false });
+      await SDCReviews.bulkWrite(writes, { ordered: false });
       totalCount += count;
       console.log(totalCount);
       count = 0;
       products = {};
     }
   }
+
   const writes = [];
-  for (let key in products) {
+  for (const key in products) {
     writes.push({
       updateOne: {
         filter: { product_id: parseInt(key) },
@@ -55,15 +55,18 @@ const client = new MongoClient(config.database.mongoUri, {
       },
     });
   }
-  const result = await SDCReviews.bulkWrite(writes, { ordered: false });
+  await SDCReviews.bulkWrite(writes, { ordered: false });
   totalCount += count;
-
   const end = Date.now();
-  console.log(
-    `Added ${totalCount} characteristics into the database in ${
-      Math.round((end - start) / 10) / 100
-    }s`
-  );
+  console.log(`Added ${totalCount} characteristics into the database in ${Math.round((end - start) / 10) / 100}s`);
 
   client.close();
-})();
+};
+
+if (require.main === module) {
+  (async () => {
+    await characteristicsMigration();
+  })();
+}
+
+export default characteristicsMigration;

@@ -1,3 +1,4 @@
 node_modules
-data/*.csv
-config.js
+data
+*.env
+dist

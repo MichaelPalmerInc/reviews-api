@@ -1,51 +1,45 @@
-const { MongoClient } = require("mongodb");
-const csv = require("csv-parser");
-const fs = require("fs");
+import { MongoClient } from 'mongodb';
+import csv from 'csv-parser';
+import fs from 'fs';
+import config from '../config';
 
-const config = require("../../config");
-const batchSize = process.env.BATCH_SIZE || 10000;
+const batchSize = process.env.BATCH_SIZE || 100000;
 
 const client = new MongoClient(config.database.mongoUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-const parseBoolean = (string) => {
+const parseBoolean = (string: string): boolean => {
   const cased = string.toLowerCase();
-  if (cased === "true" || cased === "1" || cased === "yes") {
-    return true;
-  } else if (cased == "false" || cased === "0" || cased === "no") {
-    return false;
-  } else {
-    throw new Error(string);
-  }
+  return cased === 'true' || cased === '1' || cased === 'yes';
 };
 
-(async () => {
+const productsMigration = async () => {
   await client.connect();
-  console.log("Connected");
+  console.log('Connected to mongo at: ', config.database.mongoUri);
 
-  const database = client.db("SDCReviews");
-  const SDCReviews = database.collection("SDCReviews");
+  const database = client.db('SDCReviews');
+  const SDCReviews = database.collection('SDCReviews');
   SDCReviews.drop();
   SDCReviews.createIndex({ product_id: 1 });
-  SDCReviews.createIndex({ "reviews.review_id": 1 });
+  SDCReviews.createIndex({ 'reviews.review_id': 1 });
 
-  console.log("Inserting reviews into collection");
+  console.log('Beginning insertion of reviews into collection');
+  console.log('========================================================');
   const start = Date.now();
-  let parser = fs.createReadStream(config.migrations.reviews).pipe(csv());
+  const parser = fs.createReadStream(config.migrations.reviews).pipe(csv());
   let count = 0;
   let totalCount = 0;
-  let products = {};
-  let productsInDB = {};
+  let products: ProductDocumentObject = {};
+  let productsInDB: { [key: string]: boolean } = {};
   for await (const row of parser) {
-    const nextReview = {
+    const nextReview: Review = {
       review_id: parseInt(row.id),
       rating: parseInt(row.rating),
       summary: row.summary,
       recommend: parseBoolean(row.recommend),
-      response:
-        row.response === "null" || row.response === "" ? null : row.response,
+      response: row.response === 'null' || row.response === '' ? null : row.response,
       body: row.body,
       date: new Date(row.date),
       reviewer_name: row.reviewer_name,
@@ -66,7 +60,6 @@ const parseBoolean = (string) => {
             updateOne: {
               filter: { product_id: parseInt(key) },
               update: { $push: { reviews: { $each: products[key].reviews } } },
-              upsert: true,
             },
           });
         } else {
@@ -90,7 +83,6 @@ const parseBoolean = (string) => {
         updateOne: {
           filter: { product_id: parseInt(key) },
           update: { $push: { reviews: { $each: products[key].reviews } } },
-          upsert: true,
         },
       });
     } else {
@@ -100,14 +92,59 @@ const parseBoolean = (string) => {
       });
     }
   }
-  const result = await SDCReviews.bulkWrite(writes);
+  const result = await SDCReviews.bulkWrite(writes, { ordered: false });
   totalCount += count;
   const end = Date.now();
-  console.log(
-    `Added ${totalCount} reviews into the database in ${
-      Math.round((end - start) / 10) / 100
-    }s`
-  );
+  console.log(`Added ${totalCount} reviews into the database in ${Math.round((end - start) / 10) / 100}s`);
 
   client.close();
-})();
+};
+
+if (require.main === module) {
+  (async () => {
+    productsMigration();
+  })();
+}
+
+export default productsMigration;
+
+type ReviewCsv = {
+  id: string;
+  product_id: string;
+  rating: string;
+  date: string;
+  summary: string;
+  body: string;
+  recommend: string;
+  reported: string;
+  reviewer_name: string;
+  reviewer_email: string;
+  response: string;
+  helpfulness: string;
+};
+
+type Review = {
+  review_id: number;
+  rating: number;
+  summary: string;
+  recommend: boolean;
+  response: string | null;
+  body: string;
+  date: Date;
+  reviewer_name: string;
+  reviewer_email: string;
+  helpfulness: number;
+  photos?: {
+    id: number;
+    url: string;
+  }[];
+};
+
+type ProductDocument = {
+  product_id: number;
+  reviews: Review[];
+};
+
+type ProductDocumentObject = {
+  [key: string]: ProductDocument;
+};
