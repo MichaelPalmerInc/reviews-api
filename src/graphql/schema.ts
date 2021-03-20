@@ -63,6 +63,7 @@ const ReviewType = new GraphQLObjectType({
     reviewer_email: { type: GraphQLString },
     reviewer_name: { type: GraphQLString },
     helpfulness: { type: GraphQLInt },
+    characteristics: { type: GraphQLString, resolve: (obj) => JSON.stringify(obj.characteristics) },
     photos: { type: GraphQLList(PhotoType) },
   }),
 });

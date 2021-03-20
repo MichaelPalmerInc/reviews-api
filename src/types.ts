@@ -27,9 +27,7 @@ export type Review = {
     id: number;
     url: string;
   }[];
-  characteristics?: {
-    [key: string]: number;
-  };
+  characteristics?: string;
 };
 
 export type Characteristic = {
@@ -40,6 +38,35 @@ export type Characteristic = {
 export type Photo = {
   id: number;
   url: string;
+};
+
+export type MetaCharacteristics = {
+  [key: string]: {
+    id: number;
+    value: number;
+  };
+};
+
+export type MetaCharacteristicsById = {
+  [key: string]: {
+    name: string;
+    value: number;
+  };
+};
+
+export enum Rating {
+  one = 1,
+  two,
+  three,
+  four,
+  five,
+}
+export type MetaRating = {
+  1?: number;
+  2?: number;
+  3?: number;
+  4?: number;
+  5?: number;
 };
 
 export interface ProductDocument extends Document {

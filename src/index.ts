@@ -6,7 +6,15 @@ import { graphqlHTTP } from 'express-graphql';
 import config from '../config';
 import createLoaders from './graphql/dataloader';
 import schema from './graphql/schema';
-import { CustomRequest } from './types';
+import {
+  Characteristic,
+  CustomRequest,
+  MetaCharacteristics,
+  MetaCharacteristicsById,
+  MetaRating,
+  Rating,
+  Review,
+} from './types';
 
 const app = express();
 
@@ -30,7 +38,11 @@ app.get('/reviews/', async (req: CustomRequest, res) => {
   const page = parseInt(req.query.page as string) || 0;
   const sort = req.query.sort || 'relevant';
   const product_id = parseInt(req.query.product_id as string);
-  console.log(typeof product_id, product_id);
+  if (isNaN(product_id)) {
+    res.status(400);
+    res.end();
+    return;
+  }
   const graphResponse = await graphql(
     schema,
     `{ 
@@ -58,6 +70,79 @@ app.get('/reviews/', async (req: CustomRequest, res) => {
     page: page,
     count: count,
     results: graphResponse.data?.Reviews,
+  });
+});
+
+app.get('/reviews/meta', async (req: CustomRequest, res) => {
+  const product_id = parseInt(req.query.product_id as string);
+  if (isNaN(product_id)) {
+    res.status(400);
+    res.end();
+    return;
+  }
+  const graphResponse = await graphql(
+    schema,
+    `{
+      Product(id:${product_id}) {
+        characteristics {
+          id
+          name
+        }
+        reviews {
+          recommend
+          rating
+          characteristics
+        }
+      }
+    }`,
+    undefined,
+    req
+  );
+  const ratings = new Array(5).fill(0);
+  const charsById: MetaCharacteristicsById = {};
+  const charsByName: MetaCharacteristics = {};
+  const numReviews = graphResponse.data?.Product.reviews.length;
+  let recommend = 0;
+  let noRecommend = 0;
+  graphResponse.data?.Product.characteristics.forEach(({ id, name }: Characteristic) => {
+    charsById[id] = { name, value: 0 };
+  });
+  graphResponse.data?.Product.reviews.forEach((review: Review) => {
+    ratings[review.rating - 1]++;
+    const chars = JSON.parse(review.characteristics ?? '');
+    for (const char in chars) {
+      charsById[char].value += chars[char];
+    }
+    if (review.recommend) {
+      recommend++;
+    } else {
+      noRecommend++;
+    }
+  });
+
+  const metaRatings: any = {};
+  ratings.forEach((rating, i) => {
+    if (rating > 0) {
+      metaRatings[i + 1] = rating;
+    }
+  });
+  for (const id in charsById) {
+    charsByName[charsById[id].name] = {
+      id: parseInt(id),
+      value: Math.round((charsById[id].value * 10000) / numReviews) / 10000,
+    };
+  }
+  console.log('Ratings', metaRatings);
+  console.log('Chars: ', charsByName);
+  console.log('Recommend: ', recommend);
+  res.json({
+    product_id,
+    ratings: metaRatings,
+    recommended: {
+      true: recommend,
+      false: noRecommend
+    },
+    characteristics: charsByName;
   });
 });
 
