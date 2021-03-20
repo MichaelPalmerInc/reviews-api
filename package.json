@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsc -w",
+    "migrate": "node dist/src/migrations/allMigrations",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,6 +20,7 @@
   "homepage": "https://github.com/MichaelPalmerInc/reviews-api#readme",
   "dependencies": {
     "body-parser": "^1.19.0",
+    "dataloader": "^2.0.0",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-graphql": "^0.12.0",

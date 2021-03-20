@@ -1,4 +1,15 @@
 import { Document } from 'mongoose';
+import express from 'express';
+import DataLoader from 'dataloader';
+
+export interface CustomRequest extends express.Request {
+  loaders?: Loaders;
+}
+
+export type Loaders = {
+  products: DataLoader<number, ProductDocument | null, number>;
+  reviews: DataLoader<number, Review | undefined, number>;
+};
 
 export type Review = {
   review_id: number;
@@ -6,6 +17,7 @@ export type Review = {
   summary: string;
   recommend: boolean;
   response: string | null;
+  reported?: boolean;
   body: string;
   date: Date;
   reviewer_email: string;
