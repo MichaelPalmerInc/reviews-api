@@ -92,25 +92,6 @@ const ProductType = new GraphQLObjectType({
   }),
 });
 
-const RatingType = new GraphQLObjectType({
-  name: 'Ratings',
-  fields: () => ({
-    '1': { type: GraphQLInt },
-    '2': { type: GraphQLInt },
-    '3': { type: GraphQLInt },
-    '4': { type: GraphQLInt },
-    '5': { type: GraphQLInt },
-  }),
-});
-
-const ReviewMetaType = new GraphQLObjectType({
-  name: 'ReviewMeta',
-  fields: () => ({
-    product_id: { type: GraphQLNonNull(GraphQLInt) },
-    ratings: { type: RatingType },
-  }),
-});
-
 const QueryType = new GraphQLObjectType({
   name: 'Query',
   fields: () => ({
@@ -147,9 +128,6 @@ const QueryType = new GraphQLObjectType({
         const reviews = (await context.loaders.products.load(args.product_id)).reviews;
         return reviews.slice(count * page, count * (page + 1));
       },
-    },
-    ReviewMeta: {
-      type: ReviewMetaType,
     },
     Product: {
       type: ProductType,
