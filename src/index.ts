@@ -140,9 +140,9 @@ app.get('/reviews/meta', async (req: CustomRequest, res) => {
     ratings: metaRatings,
     recommended: {
       true: recommend,
-      false: noRecommend
+      false: noRecommend,
     },
-    characteristics: charsByName;
+    characteristics: charsByName,
   });
 });
 
