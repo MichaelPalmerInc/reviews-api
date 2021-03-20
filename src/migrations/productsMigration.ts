@@ -40,6 +40,7 @@ const productsMigration = async () => {
       rating: parseInt(row.rating),
       summary: row.summary,
       recommend: parseBoolean(row.recommend),
+      reported: parseBoolean(row.reported),
       response: row.response === 'null' || row.response === '' ? null : row.response,
       body: row.body,
       date: new Date(row.date),

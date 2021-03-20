@@ -7,6 +7,7 @@ const reviewSchema = new Schema(
     rating: Number,
     summary: String,
     recommend: Boolean,
+    reported: Boolean,
     response: String,
     body: String,
     date: Date,
