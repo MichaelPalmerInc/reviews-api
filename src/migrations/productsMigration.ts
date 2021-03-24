@@ -1,4 +1,4 @@
-import { BulkWriteOperation, Collection, MongoClient } from 'mongodb';
+import { BulkWriteOperation, Collection, MongoClient, ObjectId } from 'mongodb';
 import csv from 'csv-parser';
 import fs from 'fs';
 import config from '../../config';
@@ -24,7 +24,7 @@ const productsMigration = async () => {
   const SDCReviews: Collection<ProductDocument> = database.collection('SDCReviews');
   SDCReviews.drop();
   SDCReviews.createIndex({ product_id: 1 });
-  SDCReviews.createIndex({ 'reviews.review_id': 1 });
+  SDCReviews.createIndex({ 'reviews._id': 1 });
 
   console.log('Beginning insertion of reviews into collection');
   console.log('========================================================');
@@ -36,7 +36,7 @@ const productsMigration = async () => {
   let productsInDB: { [key: string]: boolean } = {};
   for await (const row of parser) {
     const nextReview: Review = {
-      review_id: parseInt(row.id),
+      _id: new ObjectId(row.id.padStart(24, '0')),
       rating: parseInt(row.rating),
       summary: row.summary,
       recommend: parseBoolean(row.recommend),

@@ -1,4 +1,4 @@
-import { Collection, MongoClient } from 'mongodb';
+import { Collection, MongoClient, ObjectId } from 'mongodb';
 import csv from 'csv-parser';
 import fs from 'fs';
 import config from '../../config';
@@ -25,7 +25,7 @@ const reviewCharacteristicsMigration = async () => {
   let totalCount = 0;
   let reviews: { [key: string]: { [key: string]: number } } = {};
   for await (const row of parser) {
-    const reviewId = parseInt(row.review_id);
+    const reviewId = row.review_id.padStart(24, '0');
     const characteristicId = parseInt(row.characteristic_id);
     const value = parseInt(row.value);
     reviews[reviewId] = reviews[reviewId] || {};
@@ -36,7 +36,7 @@ const reviewCharacteristicsMigration = async () => {
       for (const reviewId in reviews) {
         writes.push({
           updateOne: {
-            filter: { 'reviews.review_id': parseInt(reviewId) },
+            filter: { 'reviews._id': new ObjectId(reviewId) },
             update: {
               $set: { 'reviews.$.characteristics': reviews[reviewId] },
             },
@@ -54,7 +54,7 @@ const reviewCharacteristicsMigration = async () => {
   for (const reviewId in reviews) {
     writes.push({
       updateOne: {
-        filter: { 'reviews.review_id': parseInt(reviewId) },
+        filter: { 'reviews._id': new ObjectId(reviewId) },
         update: {
           $set: {
             'reviews.$.characteristics': reviews[reviewId],
