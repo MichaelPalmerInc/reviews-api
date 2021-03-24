@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { graphql } from 'graphql';
 import { graphqlHTTP } from 'express-graphql';
+import bodyParser from 'body-parser';
 
 import config from '../config';
 import createLoaders from './graphql/dataloader';
@@ -15,6 +16,7 @@ import {
   Rating,
   Review,
 } from './types';
+import Product from './models/Product';
 
 const app = express();
 
@@ -144,6 +146,57 @@ app.get('/reviews/meta', async (req: CustomRequest, res) => {
     },
     characteristics: charsByName,
   });
+});
+
+app.post('/reviews', bodyParser.json(), async (req: CustomRequest, res) => {
+  console.log(req.body);
+  const { product_id, rating, summary, body, recommend, name, email, photos, characteristics } = req.body;
+  if (!product_id || !rating || !body || recommend === undefined || !name || !email || !photos || !characteristics) {
+    return res.sendStatus(400);
+  }
+  const product = await Product.findOne({ product_id });
+  const charIds = product?.characteristics?.map((char) => char.id) || [];
+  let charsSent = 0;
+  for (const char in characteristics) {
+    if (!charIds.includes(parseInt(char))) {
+      return res.sendStatus(400);
+    }
+    charsSent++;
+  }
+  if (charsSent !== charIds.length) {
+    return res.sendStatus(400);
+  }
+  product?.addReview({
+    rating,
+    summary,
+    body,
+    recommend,
+    name,
+    email,
+    photos,
+    characteristics,
+  });
+  res.sendStatus(200);
+});
+
+app.put('/reviews/:reviewId/helpful', async (req: CustomRequest, res) => {
+  console.log(req.params.reviewId);
+  const success = await Product.markReviewHelpful(req.params.reviewId);
+  if (success) {
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(400);
+  }
+});
+
+app.put('/reviews/:reviewId/report', async (req: CustomRequest, res) => {
+  console.log(req.params.reviewId);
+  const success = await Product.reportReview(req.params.reviewId);
+  if (success) {
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(400);
+  }
 });
 
 app.listen(config.port, () => {
