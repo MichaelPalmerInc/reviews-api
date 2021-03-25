@@ -28,7 +28,9 @@ export type Review = {
     id: number;
     url: string;
   }[];
-  characteristics?: string;
+  characteristics?: {
+    [key: string]: number;
+  };
 };
 
 export type Characteristic = {
@@ -104,5 +106,7 @@ export interface ReviewDocument extends Document {
     id: number;
     url: string;
   }[];
-  characteristics?: string;
+  characteristics?: {
+    [key: string]: number;
+  };
 }

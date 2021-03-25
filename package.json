@@ -9,7 +9,8 @@
     "dev:serve": "nodemon dist/src/index.js",
     "dev": "concurrently npm:ts:watch npm:dev:serve",
     "migrate": "node dist/src/migrations/allMigrations",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:stress": "artillery run test/artillery-local.yaml"
   },
   "repository": {
     "type": "git",
@@ -23,18 +24,15 @@
   "homepage": "https://github.com/MichaelPalmerInc/reviews-api#readme",
   "dependencies": {
     "body-parser": "^1.19.0",
-    "dataloader": "^2.0.0",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
-    "express-graphql": "^0.12.0",
-    "graphql": "^15.5.0",
-    "mongodb": "^3.6.5",
-    "mongoose": "^5.12.0"
+    "mongodb": "^3.6.5"
   },
   "devDependencies": {
     "@types/express": "^4.17.11",
     "@types/mongodb": "^3.6.10",
     "@types/node": "^14.14.35",
+    "artillery": "^1.6.2",
     "concurrently": "^6.0.0",
     "csv-parser": "^3.0.0",
     "nodemon": "^2.0.7",
