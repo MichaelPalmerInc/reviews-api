@@ -1,16 +1,5 @@
-import { Document } from 'mongoose';
 import express from 'express';
-import DataLoader from 'dataloader';
 import { ObjectId } from 'mongodb';
-
-export interface CustomRequest extends express.Request {
-  loaders?: Loaders;
-}
-
-export type Loaders = {
-  products: DataLoader<number, ProductDocument | null, number>;
-  reviews: DataLoader<number, Review | undefined, number>;
-};
 
 export type Review = {
   _id: ObjectId;
@@ -89,24 +78,4 @@ export interface ProductDocument extends Document {
   reviews: Review[];
   characteristics?: Characteristic[];
   addReview: (review: NewReview) => Promise<ProductDocument>;
-}
-
-export interface ReviewDocument extends Document {
-  rating: number;
-  summary: string;
-  recommend: boolean;
-  response: string | null;
-  reported?: boolean;
-  body: string;
-  date: Date;
-  reviewer_email: string;
-  reviewer_name: string;
-  helpfulness: number;
-  photos?: {
-    id: number;
-    url: string;
-  }[];
-  characteristics?: {
-    [key: string]: number;
-  };
 }
