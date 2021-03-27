@@ -8,6 +8,10 @@ const meta: express.RequestHandler = async (req, res) => {
     return;
   }
   const product = await req.app.locals.db.collection('SDCReviews').findOne({ product_id });
+  if (!product) {
+    res.sendStatus(404);
+    return;
+  }
   const ratings: number[] = new Array(5).fill(0);
   const charsById: MetaCharacteristicsById = {};
   const charsByName: MetaCharacteristics = {};

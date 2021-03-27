@@ -8,6 +8,8 @@ const app = express();
 
 app.use('/reviews', router);
 
+console.log('I assume this works');
+console.log(config.database.mongoUri);
 MongoClient.connect(config.database.mongoUri, { useNewUrlParser: true, useUnifiedTopology: true, poolSize: 300 })
   .then((client) => {
     console.log(`Connected to the mongo database at ${config.database.mongoUri}`);

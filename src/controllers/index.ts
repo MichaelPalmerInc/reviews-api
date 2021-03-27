@@ -22,6 +22,10 @@ router.get('/', async (req, res) => {
     return;
   }
   const product = await req.app.locals.db.collection('SDCReviews').findOne({ product_id });
+  if (!product) {
+    res.sendStatus(404);
+    return;
+  }
   res.json({
     product: product_id,
     page: page,
